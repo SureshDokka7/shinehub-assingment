@@ -1,0 +1,32 @@
+{
+  "name": "shinehub-vpp-batch-dispatch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MERN prototype and design submission for ShineHub VPP Batch Event Dispatch.",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node backend/src/server.js",
+    "client": "vite --config frontend/vite.config.js --host 127.0.0.1",
+    "build": "vite build --config frontend/vite.config.js",
+    "preview": "vite preview --config frontend/vite.config.js --host 127.0.0.1",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "start": "node backend/src/server.js"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.2",
+    "@vitejs/plugin-react": "^6.0.3",
+    "concurrently": "^10.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "lucide-react": "^1.23.0",
+    "mongoose": "^9.7.4",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2",
+    "uuid": "^14.0.1",
+    "vite": "^8.1.4"
+  }
+}

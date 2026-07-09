@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply min-w-80 bg-slate-100 text-slate-950 antialiased;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 999px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+}
