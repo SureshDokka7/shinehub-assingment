@@ -24,8 +24,29 @@ npm run dev
 
 - Portal: `http://127.0.0.1:5173`
 - API: `http://localhost:4000/api/health`
+- Swagger UI (Interactive Console): `http://localhost:4000/api-docs`
 
 The prototype uses an in-memory repository so it runs without MongoDB. `backend/src/models/vppModels.js` contains the production MongoDB/Mongoose model definitions and safety indexes.
+
+## API Testing & Exploration
+
+We have integrated multiple API client options for exploring the VPP event dispatch flows:
+
+1. **Dynamic Swagger UI Client (Recommended)**
+   - Start the backend and open `http://localhost:4000/api-docs` in your browser.
+   - All documentation is compiled dynamically using `swagger-jsdoc` from annotations inline with route definitions (e.g., `healthRoutes.js`, `fleetRoutes.js`, etc.).
+   - Use the interactive console to test all endpoints (e.g., validate and create events, dispatch batches, retry failed device commands, and ingest mock telemetry) directly in your browser.
+
+2. **Automated CLI Flow Tester**
+   - Run the full lifecycle simulator in your terminal:
+     ```bash
+     npm run test:api-flow
+     ```
+   - This script runs an end-to-end simulation: checking health, validating payloads, creating a batch event, initiating dispatch, polling statuses in real-time, executing retries on failures, querying audit records, and running crash recovery scans.
+
+3. **VS Code REST Client**
+   - Open `api-testing/vpp-api-client.http` inside VS Code.
+   - Install the recommended **REST Client** extension to execute API requests directly from your editor.
 
 ## Run With Docker
 

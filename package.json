@@ -12,7 +12,8 @@
     "preview": "vite preview --config frontend/vite.config.js --host 127.0.0.1",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "start": "node backend/src/server.js"
+    "start": "node backend/src/server.js",
+    "test:api-flow": "node api-testing/flow-tester.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.2",
@@ -25,6 +26,8 @@
     "pdf-parse": "^2.4.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "tailwindcss": "^4.3.2",
     "uuid": "^14.0.1",
     "vite": "^8.1.4"

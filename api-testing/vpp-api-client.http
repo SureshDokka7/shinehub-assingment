@@ -1,0 +1,119 @@
+### ShineHub VPP Batch Event Dispatch API Console
+# This file can be run directly inside VS Code if you install the "REST Client" extension (humao.rest-client).
+# It allows you to test and explore all VPP event scheduling and simulation flows manually.
+
+@baseUrl = http://localhost:4000
+@batchId = {{createEvent.response.body.batch.id}}
+@commandId = cmd-sample-placeholder
+
+### 1. Check API Health
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+###
+
+### 2. List Fleet Devices
+GET {{baseUrl}}/api/devices
+Accept: application/json
+
+###
+
+### 3. List Saved Fleet Groups
+GET {{baseUrl}}/api/groups
+Accept: application/json
+
+###
+
+### 4. Validate Event Configuration
+# Evaluates safety rules, target selector counts, and overlapping schedules (conflicts).
+POST {{baseUrl}}/api/events/validate
+Content-Type: application/json
+Accept: application/json
+
+{
+  "targetSelector": {
+    "region": "NSW"
+  },
+  "type": "discharge",
+  "powerKw": 5,
+  "startAt": "2026-07-10T12:00:00.000Z",
+  "durationMinutes": 30
+}
+
+###
+
+### 5. Create Event & Batch
+# If validation passes, this creates the VPP Event, its associated Dispatch Batch, 
+# and pending Commands for all matched target devices.
+# @name createEvent
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+Accept: application/json
+
+{
+  "targetSelector": {
+    "region": "NSW"
+  },
+  "type": "discharge",
+  "powerKw": 5,
+  "startAt": "2026-07-10T12:00:00.000Z",
+  "durationMinutes": 30,
+  "createdBy": "ops.lead@shinehub.local"
+}
+
+###
+
+### 6. Dispatch Batch Commands
+# Triggers command execution by starting the asynchronous MQTT simulation.
+# (This utilizes the ID captured from the createEvent response above).
+POST {{baseUrl}}/api/batches/{{batchId}}/dispatch
+Accept: application/json
+
+###
+
+### 7. Get Batch Details
+# Fetches summary counts and status for a specific dispatch batch.
+GET {{baseUrl}}/api/batches/{{batchId}}
+Accept: application/json
+
+###
+
+### 8. List Batch Commands
+# Retrieves status details and retry counts for all commands in this batch.
+GET {{baseUrl}}/api/batches/{{batchId}}/commands
+Accept: application/json
+
+###
+
+### 9. Get Batch Audit Log
+# Returns the audit trails for this batch and all related command transitions.
+GET {{baseUrl}}/api/batches/{{batchId}}/audit
+Accept: application/json
+
+###
+
+### 10. Manual Mock Telemetry Ingestion
+# Allows you to force state updates (e.g. mock success/failure callbacks) on a specific command.
+POST {{baseUrl}}/api/telemetry
+Content-Type: application/json
+Accept: application/json
+
+{
+  "commandId": "cmd-sample-placeholder",
+  "status": "executed",
+  "reason": "Manually simulated success telemetry callback."
+}
+
+###
+
+### 11. Retry Failed Command
+# Retries a command that failed execution, failed to publish, or timed out.
+POST {{baseUrl}}/api/commands/{{commandId}}/retry
+Accept: application/json
+
+###
+
+### 12. Run Crash Recovery worker
+# Scans and requeues any commands stuck in transitioning states.
+POST {{baseUrl}}/api/recovery/run
+Accept: application/json

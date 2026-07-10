@@ -12,6 +12,8 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "mongoose": "^9.7.4",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.1"
   }
 }
