@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 
 export const deviceSchema = new Schema(
   {
+    _id: { type: String },
     siteId: { type: String, required: true, unique: true },
     region: { type: String, required: true, index: true },
     vendor: { type: String, required: true, index: true },
@@ -16,6 +17,7 @@ export const deviceSchema = new Schema(
 
 export const controlEventSchema = new Schema(
   {
+    _id: { type: String },
     type: { type: String, required: true },
     powerKw: { type: Number, required: true },
     startAt: { type: Date, required: true },
@@ -37,7 +39,8 @@ controlEventSchema.index({ startAt: 1, endAt: 1, status: 1 });
 
 export const batchDispatchSchema = new Schema(
   {
-    eventId: { type: Schema.Types.ObjectId, ref: 'ControlEvent', required: true, index: true },
+    _id: { type: String },
+    eventId: { type: String, ref: 'ControlEvent', required: true, index: true },
     requestedBy: { type: String, required: true },
     status: {
       type: String,
@@ -54,9 +57,13 @@ export const batchDispatchSchema = new Schema(
 
 export const deviceCommandSchema = new Schema(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'BatchDispatch', required: true, index: true },
-    eventId: { type: Schema.Types.ObjectId, ref: 'ControlEvent', required: true, index: true },
-    deviceId: { type: Schema.Types.ObjectId, ref: 'Device', required: true, index: true },
+    _id: { type: String },
+    batchId: { type: String, ref: 'BatchDispatch', required: true, index: true },
+    eventId: { type: String, ref: 'ControlEvent', required: true, index: true },
+    deviceId: { type: String, ref: 'Device', required: true, index: true },
+    siteId: { type: String },
+    region: { type: String },
+    vendor: { type: String },
     attempt: { type: Number, required: true, default: 1 },
     commandPayload: { type: Schema.Types.Mixed, required: true },
     idempotencyKey: { type: String, required: true, unique: true },
@@ -86,6 +93,7 @@ export const deviceCommandSchema = new Schema(
     ackedAt: Date,
     executedAt: Date,
     failedAt: Date,
+    history: [{ type: Schema.Types.Mixed }],
   },
   { timestamps: true },
 );
@@ -96,6 +104,7 @@ deviceCommandSchema.index({ deviceId: 1, status: 1, createdAt: 1 });
 
 export const auditLogSchema = new Schema(
   {
+    _id: { type: String },
     actor: { type: String, required: true },
     action: { type: String, required: true, index: true },
     entityType: { type: String, required: true, index: true },
@@ -109,9 +118,19 @@ export const auditLogSchema = new Schema(
 
 auditLogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
 
+export const savedGroupSchema = new Schema(
+  {
+    _id: { type: String },
+    name: { type: String, required: true },
+    selector: { type: Schema.Types.Mixed, required: true },
+  },
+  { timestamps: true }
+);
+
 export const DeviceModel = mongoose.models.Device || mongoose.model('Device', deviceSchema);
 export const ControlEventModel = mongoose.models.ControlEvent || mongoose.model('ControlEvent', controlEventSchema);
 export const BatchDispatchModel = mongoose.models.BatchDispatch || mongoose.model('BatchDispatch', batchDispatchSchema);
 export const DeviceCommandModel = mongoose.models.DeviceCommand || mongoose.model('DeviceCommand', deviceCommandSchema);
 export const AuditLogModel = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
+export const SavedGroupModel = mongoose.models.SavedGroup || mongoose.model('SavedGroup', savedGroupSchema);
 

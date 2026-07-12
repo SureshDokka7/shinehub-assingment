@@ -1,12 +1,18 @@
 export function createEventController(eventService) {
   return {
-    validate(req, res) {
-      res.json(eventService.validateEvent(req.body));
+    async validate(req, res) {
+      try {
+        const result = await eventService.validateEvent(req.body);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
     },
 
-    create(req, res, next) {
+    async create(req, res, next) {
       try {
-        res.status(201).json(eventService.createEvent(req.body));
+        const result = await eventService.createEvent(req.body);
+        res.status(201).json(result);
       } catch (error) {
         next(error);
       }

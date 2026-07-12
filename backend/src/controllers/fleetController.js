@@ -1,16 +1,25 @@
 export function createFleetController(repository) {
   return {
-    listDevices(req, res) {
-      const devices = repository.selectDevices(req.query);
-      res.json({
-        devices,
-        total: devices.length,
-        offlineCount: devices.filter((device) => device.onlineState === 'offline').length,
-      });
+    async listDevices(req, res) {
+      try {
+        const devices = await repository.selectDevices(req.query);
+        res.json({
+          devices,
+          total: devices.length,
+          offlineCount: devices.filter((device) => device.onlineState === 'offline').length,
+        });
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
     },
 
-    listGroups(_req, res) {
-      res.json({ groups: repository.getGroups() });
+    async listGroups(_req, res) {
+      try {
+        const groups = await repository.getGroups();
+        res.json({ groups });
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
     },
   };
 }

@@ -3,16 +3,16 @@ import { staleRecoveryStatuses, terminalCommandStatuses } from '../constants/sta
 export function createDispatchService(repository, batchService, commandService) {
   const activeTimers = new Map();
 
-  function scheduleCommand(command) {
+  async function scheduleCommand(command) {
     if (activeTimers.has(command.id)) return;
 
-    const device = repository.getDeviceById(command.deviceId);
+    const device = await repository.getDeviceById(command.deviceId);
     const timers = [];
     activeTimers.set(command.id, timers);
 
     const transitionLater = (delay, status, metadata = {}) => {
-      const timer = setTimeout(() => {
-        commandService.transitionCommand(command.id, status, metadata);
+      const timer = setTimeout(async () => {
+        await commandService.transitionCommand(command.id, status, metadata);
         if (terminalCommandStatuses.has(status)) activeTimers.delete(command.id);
       }, delay);
       timers.push(timer);
@@ -49,33 +49,37 @@ export function createDispatchService(repository, batchService, commandService) 
     transitionLater(2_500 + (numericId % 7) * 150, 'executed', { reason: 'Device reported executed telemetry.' });
   }
 
-  function dispatchBatch(batchId) {
-    const batch = repository.getBatchById(batchId);
+  async function dispatchBatch(batchId) {
+    const batch = await repository.getBatchById(batchId);
     if (!batch) return null;
 
     batch.status = 'dispatching';
     batch.updatedAt = new Date().toISOString();
-    repository.getPendingCommandsByBatchId(batchId).forEach(scheduleCommand);
-    batchService.updateBatchSummary(batchId);
-    return batchService.serializeBatch(batch);
+    
+    const pending = await repository.getPendingCommandsByBatchId(batchId);
+    for (const command of pending) {
+      await scheduleCommand(command);
+    }
+    
+    await batchService.updateBatchSummary(batchId);
+    return await batchService.serializeBatch(batch);
   }
 
-  function retryAndSchedule(commandId) {
-    const command = commandService.retryCommand(commandId);
-    if (command) scheduleCommand(command);
+  async function retryAndSchedule(commandId) {
+    const command = await commandService.retryCommand(commandId);
+    if (command) await scheduleCommand(command);
     return command;
   }
 
-  function runRecovery() {
-    const stale = repository.getCommandsByStatuses(staleRecoveryStatuses);
-    stale.forEach((command) => {
+  async function runRecovery() {
+    const stale = await repository.getCommandsByStatuses(staleRecoveryStatuses);
+    for (const command of stale) {
       activeTimers.delete(command.id);
-      commandService.transitionCommand(command.id, 'pending', { reason: 'Crash recovery requeued stale command.' });
-      scheduleCommand(command);
-    });
+      await commandService.transitionCommand(command.id, 'pending', { reason: 'Crash recovery requeued stale command.' });
+      await scheduleCommand(command);
+    }
     return stale.length;
   }
 
   return { dispatchBatch, retryAndSchedule, runRecovery };
 }
-

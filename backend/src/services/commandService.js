@@ -2,14 +2,15 @@ import { retryableCommandStatuses, terminalCommandStatuses } from '../constants/
 import { httpError } from '../utils/httpError.js';
 
 export function createCommandService(repository, batchService) {
-  function transitionCommand(commandId, status, metadata = {}) {
-    const command = repository.getCommandById(commandId);
+  async function transitionCommand(commandId, status, metadata = {}) {
+    const command = await repository.getCommandById(commandId);
     if (!command) return null;
     if (terminalCommandStatuses.has(command.status) && status !== 'pending') return command;
 
     const before = { status: command.status, attempt: command.attempt };
     command.status = status;
     command.updatedAt = new Date().toISOString();
+    command.history = Array.isArray(command.history) ? command.history : [];
     command.history.push({ status, at: command.updatedAt, ...metadata });
 
     if (status === 'sent') command.sentAt = command.updatedAt;
@@ -20,16 +21,17 @@ export function createCommandService(repository, batchService) {
       command.terminalReason = metadata.reason || status;
     }
 
-    repository.createAudit('command.status_changed', 'DeviceCommand', command.id, { status, attempt: command.attempt }, metadata, 'system.dispatcher', before);
-    batchService.updateBatchSummary(command.batchId);
+    await repository.saveCommand(command);
+    await repository.createAudit('command.status_changed', 'DeviceCommand', command.id, { status, attempt: command.attempt }, metadata, 'system.dispatcher', before);
+    await batchService.updateBatchSummary(command.batchId);
     return command;
   }
 
-  function retryCommand(commandId) {
-    const command = repository.getCommandById(commandId);
+  async function retryCommand(commandId) {
+    const command = await repository.getCommandById(commandId);
     if (!command) return null;
 
-    const event = repository.getEventById(command.eventId);
+    const event = await repository.getEventById(command.eventId);
     if (!event || new Date(event.endAt).getTime() < Date.now()) {
       throw httpError(409, 'Retry blocked because the event window has ended.');
     }
@@ -37,7 +39,7 @@ export function createCommandService(repository, batchService) {
       throw httpError(409, `Retry is not allowed from ${command.status}.`);
     }
 
-    const conflicts = repository.findConflicts([command.deviceId], event.startAt, event.endAt, command.batchId);
+    const conflicts = await repository.findConflicts([command.deviceId], event.startAt, event.endAt, command.batchId);
     if (conflicts.length) {
       throw httpError(409, 'Retry blocked by an overlapping active command.');
     }
@@ -45,8 +47,9 @@ export function createCommandService(repository, batchService) {
     command.attempt += 1;
     command.idempotencyKey = `${event.id}:${command.deviceId}:${command.attempt}`;
     command.terminalReason = null;
-    transitionCommand(command.id, 'pending', { reason: 'Operator retry requested.' });
-    repository.createAudit('command.retry_requested', 'DeviceCommand', command.id, { attempt: command.attempt }, { eventId: event.id }, 'ops.lead@shinehub.local');
+    await repository.saveCommand(command);
+    await transitionCommand(command.id, 'pending', { reason: 'Operator retry requested.' });
+    await repository.createAudit('command.retry_requested', 'DeviceCommand', command.id, { attempt: command.attempt }, { eventId: event.id }, 'ops.lead@shinehub.local');
     return command;
   }
 

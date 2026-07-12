@@ -1,7 +1,12 @@
 export function createRecoveryController(dispatchService) {
   return {
-    run(_req, res) {
-      res.json({ recovered: dispatchService.runRecovery() });
+    async run(_req, res) {
+      try {
+        const count = await dispatchService.runRecovery();
+        res.json({ recovered: count });
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
     },
   };
 }

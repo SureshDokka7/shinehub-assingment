@@ -2,8 +2,8 @@ import { v4 as uuid } from 'uuid';
 import { httpError } from '../utils/httpError.js';
 
 export function createEventService(repository) {
-  function validateEvent(payload) {
-    const targetDevices = repository.selectDevices(payload.targetSelector);
+  async function validateEvent(payload) {
+    const targetDevices = await repository.selectDevices(payload.targetSelector);
     const startAt = new Date(payload.startAt);
     const durationMinutes = Number(payload.durationMinutes);
     const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
@@ -28,7 +28,7 @@ export function createEventService(repository) {
       warnings.push(`${unsupported.length} devices do not advertise ${payload.type}; they will be skipped unless vendor mapping supports fallback.`);
     }
 
-    const conflicts = repository.findConflicts(
+    const conflicts = await repository.findConflicts(
       targetDevices.map((device) => device.id),
       startAt,
       endAt,
@@ -49,13 +49,13 @@ export function createEventService(repository) {
     };
   }
 
-  function createEvent(payload) {
-    const validation = validateEvent(payload);
+  async function createEvent(payload) {
+    const validation = await validateEvent(payload);
     if (!validation.ok) {
       throw httpError(422, 'Event validation failed.', validation);
     }
 
-    const selectedDevices = repository.selectDevices(payload.targetSelector);
+    const selectedDevices = await repository.selectDevices(payload.targetSelector);
     const event = {
       id: uuid(),
       type: payload.type,
@@ -112,9 +112,9 @@ export function createEventService(repository) {
       };
     });
 
-    repository.createEventGraph({ event, batch, commands });
-    repository.createAudit('event.created', 'ControlEvent', event.id, event, { batchId: batch.id, targetCount: selectedDevices.length }, event.createdBy);
-    repository.createAudit('batch.created', 'BatchDispatch', batch.id, batch, { eventId: event.id }, event.createdBy);
+    await repository.createEventGraph({ event, batch, commands });
+    await repository.createAudit('event.created', 'ControlEvent', event.id, event, { batchId: batch.id, targetCount: selectedDevices.length }, event.createdBy);
+    await repository.createAudit('batch.created', 'BatchDispatch', batch.id, batch, { eventId: event.id }, event.createdBy);
 
     return { event, batch, validation };
   }

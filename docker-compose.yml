@@ -1,4 +1,17 @@
 services:
+  mongo:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   backend:
     build:
       context: .
@@ -8,6 +21,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
+      USE_MONGO: "true"
+      MONGO_URI: "mongodb://mongo:27017/vpp-dispatch"
+    depends_on:
+      mongo:
+        condition: service_healthy
 
   frontend:
     build:
@@ -17,3 +35,6 @@ services:
       - "8080:80"
     depends_on:
       - backend
+
+volumes:
+  mongo_data:

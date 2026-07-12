@@ -12,15 +12,16 @@ import { createHealthController } from './controllers/healthController.js';
 import { createRecoveryController } from './controllers/recoveryController.js';
 import { createTelemetryController } from './controllers/telemetryController.js';
 import { createInMemoryVppRepository } from './repositories/inMemoryVppRepository.js';
+import { createMongoVppRepository } from './repositories/mongoVppRepository.js';
 import { createApiRoutes } from './routes/index.js';
 import { createBatchService } from './services/batchService.js';
 import { createCommandService } from './services/commandService.js';
 import { createDispatchService } from './services/dispatchService.js';
 import { createEventService } from './services/eventService.js';
 
-export function createApp() {
+export function createApp({ useMongo = false } = {}) {
   const app = express();
-  const repository = createInMemoryVppRepository();
+  const repository = useMongo ? createMongoVppRepository() : createInMemoryVppRepository();
 
   const batchService = createBatchService(repository);
   const commandService = createCommandService(repository, batchService);
