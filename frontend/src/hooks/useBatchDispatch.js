@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { apiRequest } from '../api/vppApi.js';
+import {
+  fetchGroups,
+  validateEvent,
+  fetchBatchById,
+  fetchBatchCommands,
+  fetchBatchAudit,
+  createEvent,
+  dispatchBatch,
+  retryCommand,
+} from '../api/vppApi.js';
 import { defaultStartTime } from '../utils/date.js';
 
 const terminalStatuses = ['executed', 'publish_failed', 'ack_timeout', 'execution_timeout', 'execution_failed', 'offline_expired', 'skipped_conflict'];
@@ -57,7 +66,7 @@ export function useBatchDispatch() {
   }, [commands]);
 
   useEffect(() => {
-    apiRequest('/groups')
+    fetchGroups()
       .then((data) => setGroups(data.groups))
       .catch(() => setGroups([]));
   }, []);
@@ -65,7 +74,7 @@ export function useBatchDispatch() {
   useEffect(() => {
     const payload = toEventPayload(form, targetSelector);
     const timer = setTimeout(() => {
-      apiRequest('/events/validate', { method: 'POST', body: JSON.stringify(payload) })
+      validateEvent(payload)
         .then(setValidation)
         .catch((err) => setValidation(err.details || { ok: false, errors: [err.message] }));
     }, 250);
@@ -77,7 +86,7 @@ export function useBatchDispatch() {
     if (!batch?.id) return undefined;
 
     const loadBatch = () => {
-      Promise.all([apiRequest(`/batches/${batch.id}`), apiRequest(`/batches/${batch.id}/commands`), apiRequest(`/batches/${batch.id}/audit`)])
+      Promise.all([fetchBatchById(batch.id), fetchBatchCommands(batch.id), fetchBatchAudit(batch.id)])
         .then(([batchData, commandData, auditData]) => {
           setBatch(batchData.batch);
           setCommands(commandData.commands);
@@ -103,8 +112,8 @@ export function useBatchDispatch() {
         ...toEventPayload(form, targetSelector),
         createdBy: 'ops.lead@shinehub.local',
       };
-      const created = await apiRequest('/events', { method: 'POST', body: JSON.stringify(payload) });
-      const dispatched = await apiRequest(`/batches/${created.batch.id}/dispatch`, { method: 'POST' });
+      const created = await createEvent(payload);
+      const dispatched = await dispatchBatch(created.batch.id);
       setBatch(dispatched.batch);
       setCommands([]);
     } catch (err) {
@@ -117,7 +126,7 @@ export function useBatchDispatch() {
   async function retry(commandId) {
     setError('');
     try {
-      await apiRequest(`/commands/${commandId}/retry`, { method: 'POST' });
+      await retryCommand(commandId);
     } catch (err) {
       setError(err.message);
     }
